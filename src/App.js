@@ -1,21 +1,25 @@
-import logo from './logo.svg';
-import './App.css';
-import { test_test } from './redux/thunk';
-import { useDispatch ,useSelector} from 'react-redux';
-
+import { useDispatch, useSelector } from "react-redux";
+import Nav_admin from "./nav/admin.jsx";
+import Nav_supper_admin from "./nav/super_admin.jsx";
+import Login from "./login/login.jsx";
+import { useEffect } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Link,
+  useLocation,
+} from "react-router-dom";
 function App() {
-  const test=useSelector(state=>state.test)
-  const dispatch=useDispatch()
-
-  const tester=()=>{
-    dispatch(test_test('true'))
-  }
+  const dispatch = useDispatch();
+  const id_role = useSelector((state) => state.id_role);
+  const token = useSelector((state) => state.token);
+  const user = useSelector((state) => state.user);
   return (
     <div className="App">
-      <h1>pour tester</h1>
-      <p>valuue:{test}</p>
-      <button onClick={()=>{return tester()}}>onclick</button>
-
+      <Router>
+        {token == null && user == null ? <Login /> : <Nav_supper_admin />}
+      </Router>
     </div>
   );
 }
