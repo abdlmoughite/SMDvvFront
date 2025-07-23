@@ -7,18 +7,39 @@ const initialState = {
     token:typeof window!=="undefined" ? localStorage.getItem("token-user") : null,
     message:'',
     id_role:typeof window!=="undefined" ? localStorage.getItem("id_role-user") : null,
-    user: typeof window!=="undefined" ? JSON.parse(localStorage.getItem('user')) :  {
+    user: typeof window !== "undefined" && localStorage.getItem('user') ? 
+    
+    (() => {
+        try {
+            return JSON.parse(localStorage.getItem('user'));
+        } catch (e) {
+            console.error("خطأ في تحليل بيانات المستخدم:", e);
+            return {
+                permition: {
+                    graphe: false,
+                    chiffre: false,
+                    depence: false,
+                    produits: false,
+                    categorys: false,
+                    commandes: false,
+                    utilisateurs: false,
+                    details_commandes: false,
+                },
+            };
+        }
+    })() : {
         permition: {
-          graphe: false,
-          chiffre: false,
-          depence: false,
-          produits: false,
-          categorys: false,
-          commandes: false,
-          utilisateurs: false,
-          details_commandes: false,
+            graphe: false,
+            chiffre: false,
+            depence: false,
+            produits: false,
+            categorys: false,
+            commandes: false,
+            utilisateurs: false,
+            details_commandes: false,
         },
-      },
+    },
+
     /////////////////////////////////////////////////
     loading:false,
     //// admin////////////////////////////////////////////////////////////
@@ -44,7 +65,11 @@ const initialState = {
      /////// gestion depence//////////////////////////////
      list_depence:[],
      ////////////////////////////////
-     list_cmd_calcul:[]
+     list_cmd_calcul:[] ,
+
+
+     ////// coust ///////
+     list_coust_groub : [],
   };
 
   const clientReducer = (state = initialState, action) => {
@@ -184,8 +209,6 @@ const initialState = {
                     message:action.payload.message,
                     id_role:action.payload.id_role,
                     token:action.payload.token,
-                    
-
                 }
 
             case 'GESTION_MSG_ERR':
@@ -239,10 +262,25 @@ const initialState = {
                     loading:false
                 }
 
-
-
-
-
+                //////couste
+            case 'GET_COUST':
+                return{
+                    ...state,
+                    list_coust_groub:action.payload,
+                    loading:false
+                }
+            case 'ADD_COUST':
+                return{
+                    ...state,
+                    list_coust_groub:action.payload,
+                    loading:false
+                }
+            case 'edit_COUST':
+                return{
+                    ...state,
+                    list_coust_groub:action.payload,
+                    loading:false
+                }
 
  default:
         return state;

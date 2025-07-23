@@ -4,6 +4,10 @@ export const loading = () => ({
   type: "LOADING",
   payload:true,
 });
+export const falseloading = () => ({
+  type: "LOADING",
+  payload:false,
+});
 
 
 //// interface 1
@@ -112,5 +116,22 @@ export const get_cmd_calcul=(data)=>({
 
 export const set_users=(data)=>({
   type:'SET_USERS',
+  payload:data
+})
+
+////// coust ///
+
+export const get_coust=(data)=>({
+  type:'GET_COUST',
+  payload:data
+})
+
+export const add_coust_jour=(data)=>({
+  type:'ADD_COUST',
+  payload:data
+})
+
+export const edit=(data)=>({
+  type:'edit_COUST',
   payload:data
 })

@@ -25,12 +25,18 @@ import {
   get_depence,
   get_cmd_calcul,
   set_users,
+  falseloading,
+  edit,
+  add_coust_jour,
+  get_coust
+  
 } from "./actions.jsx";
 import { compose } from "redux";
-const local="https://back.smdvv.ma/public"
+const local="http://127.0.0.1:8000"
 //////////////////////loading //////////////////////////
 export const update_commande = (commande) => async (dispatch) => {
   dispatch(loading());
+  console.log("commande", commande.id_commande);
   try {
     const res = await axios.put(
       local+"/api/commandes/" + commande.id,
@@ -77,12 +83,16 @@ export const get_produit = () => async (dispatch) => {
 
 export const add_commandes = (commande) => async (dispatch) => {
   dispatch(loading());
+  console.log("3azi" , commande);
   try {
     const res = await axios.post(local+"/api/commandes", commande);
     dispatch(add_commande(res.data));
+    dispatch(falseloading());
   } catch (error) {
     console.log(error);
+        dispatch(falseloading());
   }
+    dispatch(falseloading());
 };
 
 export const get_commandes = () => async (dispatch) => {
@@ -117,63 +127,74 @@ export const set_qnt_produit = (objQnt) => async (dispatch) => {
   }
 };
 
-////// enregistrer les commande et client dands la base d edonner
 export const engr_commande = (commandes) => async (dispatch) => {
   dispatch(loading());
   try {
     const count_ligne = commandes.length;
     for (let i = 0; i < count_ligne; i++) {
+      console.log("commande", commandes[i]);
       const client = {
         numero_client: commandes[i].numero_client,
         nom_client: commandes[i].nom_client,
         ville: commandes[i].ville,
         adresse_client: commandes[i].adresse_client,
       };
-      const res_client = await axios.post(
-        local+"/api/client",
-        client,
-        {
+      try {
+        const res_client = await axios.post(local + "/api/client", client, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token-user")}`,
           },
-        }
-      );
-      if (res_client.status == 201 || res_client.status == 200) {
-        const commande = {
-          ville: commandes[i].ville,
-          quntite: commandes[i].quntite,
-          prix_livraison: commandes[i].prix_livraison,
-          prix: commandes[i].prix,
-          commentaire: commandes[i].commantaire,
-          status: "en coure",
-          ville_commande:commandes[i].ville_commande,
-          numero: res_client.data.numero,
-          id_produit: commandes[i].produit_id,
-          date_commande: format(new Date(), "yyyy-MM-dd"),
-          id_user: localStorage.getItem("id-user"),
-        };
-        const res_commande = await axios.post(
-          local+"/api/commande",
-          commande,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token-user")}`,
-            },
+        });
+        if (res_client.status === 201 || res_client.status === 200) {
+          const commande = {
+            id_commande: commandes[i].id_commande,
+            ville: commandes[i].ville,
+            quntite: commandes[i].quntite,
+            prix_livraison: commandes[i].prix_livraison,
+            prix: commandes[i].prix,
+            commentaire: commandes[i].commantaire,
+            ville_commande: commandes[i].ville,
+            numero: res_client.data.numero,
+            id_produit: commandes[i].produit_id,
+            date_commande: commandes[i].date_commande,
+            id_user: localStorage.getItem("id-user"),
+            status: "Miss",
+          };
+          console.log("commande", commande);
+          try {
+            const res_commande = await axios.post(local + "/api/commande", commande, {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("token-user")}`,
+              },
+            });
+
+            if (res_commande.status === 201 ) {
+              await axios.get(local + "/api/SupCommandes/" + commandes[i].id);
+              dispatch(claire_commandes(commandes[i].id_commande));
+            } else {
+              console.error(`Erreur lors de l'ajout de la commande ${commandes[i].id_commande}`);
+            }
+          } catch (error) {
+            console.error("Erreur lors de la création de la commande : ", error);
+            dispatch(falseloading());
           }
-        );
-        if (res_commande.status == 201) {
-          
-          await axios.get(local+"/api/SupCommandes/" + commandes[i].id);
-          dispatch(claire_commandes(commandes[i].id_commande))
+        } else {
+          console.error(`Erreur lors de la création du client ${commandes[i].id_commande}`);
+          dispatch(falseloading());
         }
+      } catch (error) {
+        console.error("Erreur lors de la création du client : ", error);
+        dispatch(falseloading());
       }
     }
 
     // const res_client=await axios.post(local+"/api/client")
   } catch (error) {
-    console.log(error);
+    console.error("Erreur dans l'enregistrement des commandes", error);
+    dispatch(falseloading());
   }
 };
+
 
 ///////////////interface 2///////////////////////////////////////////////////
 export const get_list_cmd = () => async (dispatch) => {
@@ -191,6 +212,7 @@ export const get_list_cmd = () => async (dispatch) => {
     }
   } catch (error) {
     console.log(error);
+    dispatch(falseloading());
   }
 };
 
@@ -366,7 +388,6 @@ export const ajouter_category = (obj) => async (dispatch) => {
 export const login = (user) => async (dispatch) => {
   dispatch(loading());
   try {
-    
     const res = await axios.post(local+"/api/login", user,
       {
         headers: {
@@ -383,15 +404,12 @@ export const login = (user) => async (dispatch) => {
           res.data.user
         )
       );
-
       localStorage.setItem("response", JSON.stringify(res.data));
       localStorage.setItem("token-user", res.data.token);
       localStorage.setItem("id_role-user", res.data.id_role);
       localStorage.setItem("user", JSON.stringify(res.data.user));
-
     } else {
       dispatch(login_user(null, null, res.data.message));
-      
     }
   } catch (error) {
     console.log(error);
@@ -563,6 +581,106 @@ export const affecter_permition = (id_user, new_obj) => async (dispatch) => {
 
     if (res.status == 200) {
       dispatch(set_users(res.data));
+    }
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+
+export const ajouter_coust_groub = (data) => async (dispatch) => {
+  dispatch(loading());
+  
+  try {
+    const res = await axios.post(local+"/api/coust",  data,{
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token-user")}`,
+      },
+    } );
+    if (res.status == 200 || res.status == 201) {
+      console.log(res.data);
+      dispatch(get_coust(res.data));
+    }
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+
+export const get_coust_groub = () => async (dispatch) => {
+  dispatch(loading());
+  try {
+    const res = await axios.get(local+"/api/Groupe_commande", {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token-user")}`,
+      },
+    });
+    const res2 = await axios.get(local+"/api/commande", {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token-user")}`,
+      },
+    }); 
+    if (res2.status == 200 || res2.status == 201) {
+      console.log(res2);
+      dispatch(get_commande(res2.data));
+    }
+    if (res.status == 200 || res.status == 201) {
+      console.log(res.data);
+      dispatch(get_coust(res.data));
+    }
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+
+export const edit_coust_groub = (newData) => async (dispatch) => {
+  dispatch(loading());
+  try {
+    const res = await axios.post(local+"/api/newCoust", newData ,  {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token-user")}`,
+      },
+    });
+    if (res.status == 200 || res.status == 201) {
+      console.log(res.data);
+      dispatch(get_coust(res.data));
+    }
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+export const update_commande_jour_cost = (commande) => async (dispatch) => {
+  dispatch(loading());
+  console.log("commande", commande.id_commande);
+  try {
+    const res = await axios.post(
+      local+"/api/update_commande_jour_cost/",
+      commande
+    );
+    if(res.status==200){
+      dispatch(setCommande(res.data));
+      dispatch(get_coust(res.data));
+    }
+
+  } catch (error) {
+    console.log(error);
+  }
+};
+export const update_coust_cmd = (commandes , coust) => async (dispatch) => {
+  dispatch(loading());
+  console.log("coust", coust);
+  try {
+    const res = await axios.post(
+      local+"/api/update_coust_cmd/",
+      {'commandes' : commandes, 
+        'coust' : coust
+      }
+    );
+    if(res.status==200){
+      dispatch(setCommande(res.data));
+      dispatch(get_coust(res.data));
     }
   } catch (error) {
     console.log(error);
