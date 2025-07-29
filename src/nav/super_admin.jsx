@@ -281,11 +281,11 @@ function NavSuperAdmin() {
                 {isSidebarOpen && <span>Déconnexion</span>}
               </Link>
             </li>
-            <li></li>
-            <li></li>
-            <li></li>
-            <li></li>
-            <li></li>
+            <li></li><br />
+            <li></li><br />
+            <li></li><br />
+            <li></li><br />
+            <li></li><br />
           </ul>
         </nav>
       </div>
