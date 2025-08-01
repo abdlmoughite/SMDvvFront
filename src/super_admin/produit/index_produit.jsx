@@ -93,7 +93,7 @@ function Afficher_produit(props) {
                   {/* Image with circular shape */}
                   <img
                     className="w-32 h-32 object-cover mb-4 rounded-full border border-gray-600"
-                    src={`/public/image/${i.image}`}
+                    src={`http://127.0.0.1:8000/image/${i.image}`}
                     alt={i.image}
                   />
 

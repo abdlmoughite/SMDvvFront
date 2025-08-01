@@ -7,8 +7,8 @@ const initialState = {
     token:typeof window!=="undefined" ? localStorage.getItem("token-user") : null,
     message:'',
     id_role:typeof window!=="undefined" ? localStorage.getItem("id_role-user") : null,
-    user: typeof window !== "undefined" && localStorage.getItem('user') ? 
-    
+    user: typeof window !== "undefined" && localStorage.getItem('user') ?
+
     (() => {
         try {
             return JSON.parse(localStorage.getItem('user'));
@@ -44,7 +44,7 @@ const initialState = {
     loading:false,
     //// admin////////////////////////////////////////////////////////////
     ////////////interface 1//////////////////////
-    list_produit:'',
+    list_produit:[],
     commandes:[],
 
     /////////////interface 2////////////////////////

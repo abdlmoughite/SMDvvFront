@@ -55,7 +55,13 @@ function Add_commande() {
         id_user: user.id,
         date_commande: "",
     });
-    const list_produit = useSelector((stater) => stater.list_produit);
+     const list_produit = useSelector((state) => state.list_produit);
+    const [produitTrouve, setProduitTrouve] = useState([]);
+
+useEffect(() => {
+
+        setProduitTrouve(list_produit);
+}, [list_produit]);
     const dispatch = useDispatch();
     const commandes = useSelector((state) => state.commandes);
     const [afficher_commandes_excel,setAfficher_commandes_excel]=useState(false)
@@ -405,6 +411,18 @@ function Add_commande() {
         );
         return foundVille;
     };
+    const find_produit = (cmnt) => {
+    const id_produit = cmnt.split(",")[0];
+
+    if (Array.isArray(produitTrouve) && produitTrouve.length > 0) {
+        return produitTrouve.find(
+            (produit) => produit.id_produit == id_produit
+        );
+    }
+
+    return null; // Aucun produit trouvé ou tableau vide
+};
+
 
     const ajouterExcelData_json = () => {
         setAfficher_commandes_excel(true)
@@ -441,18 +459,18 @@ function Add_commande() {
                     nom_client: row["DESTINATAIRE"] || "",
                     numero_client: num,
                     adresse_client: row["ADRESSE"] || "", // Adresse du client
-                    ville: findville(row["VILLE"]) ? row["VILLE"] : "?",
+                    ville: findville(row["VILLE"]) ? findville(row["VILLE"]).label : null,
                     ville_id: findville(row["VILLE"])
                         ? findville(row["VILLE"]).id
-                        : "",
+                        : null,
                     prix_livraison: findville(row["VILLE"])
                         ? findville(row["VILLE"]).DELIVERED
                         : 0,
                     quntite: 1,
                     prix: row["PRIX"] || 0,
                     commantaire: row["COMMENTAIRE"] || "", // Commentaire
-                    produit_id: "", // Identifiant du produit (vide pour l'instant)
-                    nom_produit: row["NATURE"] || "", // Nature du produit
+                    produit_id: find_produit(JSON.stringify(row["COMMENTAIRE"])) ? find_produit(JSON.stringify(row["COMMENTAIRE"])).id : null, // Identifiant du produit (vide pour l'instant)
+                    nom_produit: find_produit(JSON.stringify(row["COMMENTAIRE"])) ? find_produit(JSON.stringify(row["COMMENTAIRE"])).nom : null, // Nature du produit
                     id_user: user.id, // Identifiant de l'utilisateur
                     date_commande: format(new Date(), "yyyy-MM-dd"),
                 };
@@ -467,24 +485,36 @@ function Add_commande() {
     };
 
     const modifieVille = (idcommande, newville) => {
-        const commandeRecherch = commandes.find(
+        const commandeRecherch = list_commande_excel.find(
             (item) => item.id_commande === idcommande
         );
         commandeRecherch.ville = newville;
         commandeRecherch.ville_id = findville(newville).id;
         commandeRecherch.prix_livraison = findville(newville).DELIVERED;
-        dispatch(update_commande(commandeRecherch));
+        setList_commande_excel(list_commande_excel.map((i)=>{
+            if(i.id_commande==idcommande){
+                return commandeRecherch
+            }
+            return i
+        }))
+
     };
-    const modifieProduit = (idcommande, newproduit_id, newproduit_nom) => {
-        const commandeRecherch = commandes.find(
-            (item) => item.id_commande === idcommande
+    const modifieProduit = (idcommande, newproduit_id) => {
+        const commandeRecherch = list_commande_excel.find(
+            (item) => item.id_commande == idcommande
         );
-        commandeRecherch.produit_id = newproduit_id;
-        commandeRecherch.nom_produit = newproduit_nom;
-        dispatch(update_commande(commandeRecherch));
+        const new_produit=list_produit.find((i)=>i.id_produit==newproduit_id)
+        commandeRecherch.produit_id = new_produit.id_produit;
+        commandeRecherch.nom_produit = new_produit.nom;
+        setList_commande_excel(list_commande_excel.map((i)=>{
+            if(i.id_commande==idcommande){
+                return commandeRecherch
+            }
+            return i
+        }))
     };
 
-    console.log("new test",list_commande_excel)
+    console.log("new ville",list_commande_excel)
     return (
         <div className="p-4 bg-gray-900 min-h-screen text-white">
             {loading === true || user === undefined ? (
@@ -915,15 +945,7 @@ function Add_commande() {
                                                     null ? (
                                                         <select
                                                             name="produit_id"
-                                                            onChange={(e) =>
-                                                                modifieProduit(
-                                                                    commande.id_commande,
-                                                                    e.target
-                                                                        .value,
-                                                                    list_produit[0]
-                                                                        .nom
-                                                                )
-                                                            }
+
                                                             className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-400 focus:outline-none"
                                                         >
                                                             <option value="">
@@ -964,15 +986,7 @@ function Add_commande() {
                                                             value={
                                                                 commande.produit_id
                                                             }
-                                                            onChange={(e) =>
-                                                                modifieProduit(
-                                                                    commande.id_commande,
-                                                                    e.target
-                                                                        .value,
-                                                                    list_produit[0]
-                                                                        .nom
-                                                                )
-                                                            }
+
                                                             className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-400 focus:outline-none"
                                                         >
                                                             <option value="">
@@ -1127,13 +1141,14 @@ function Add_commande() {
                         >
                             <td className="px-6 py-4">{commande.id_commande || '-'}</td>
                             <td className={`px-6 py-4 ${!commande.nom_client ? 'bg-red-900' : ''}`}>
-                                {commande.nom_client || 'Non spécifié'}
+                                <input className="text-color-black" type="text" value={commande.nom_client || ''} />
                             </td>
                             <td className={`px-6 py-4 ${!commande.numero_client ? 'bg-red-900' : ''}`}>
-                                {commande.numero_client || '-'}
+                                <input className="text-color-black" type="text" value={commande.numero_client || ''} />
+
                             </td>
                             <td className={`px-6 py-4 ${!commande.ville ? 'bg-red-900' : ''}`}>
-                                {commande.ville === "?" ? (
+                                {commande.ville === null ? (
                                     <Select
                                         options={list_villes}
                                         placeholder="Choisir une ville"
@@ -1152,30 +1167,27 @@ function Add_commande() {
                                 )}
                             </td>
                             <td className="px-6 py-4">
-                                {commande.prix ? `${commande.prix} DH` : '0 DH'}
+                                <input className="text-color-black" type="text" value={commande.prix || 0} />
                             </td>
                             <td className="px-6 py-4">
-                                {commande.nom_produit ? (
-                                    commande.nom_produit
-                                ) : (
-                                    <select
+                                <select
                                         onChange={(e) => modifieProduit(commande.id_commande, e.target.value)}
                                         className="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2"
                                     >
-                                        <option value="">Sélectionner</option>
+                                        <option value={commande.id_commande}>{commande.nom_produit}</option>
                                         {list_produit.map(produit => (
                                             <option key={produit.id_produit} value={produit.id_produit}>
                                                 {produit.nom}
                                             </option>
                                         ))}
                                     </select>
-                                )}
                             </td>
                             <td className={`px-6 py-4 ${!commande.adresse_client ? 'bg-red-900' : ''}`}>
-                                {commande.adresse_client || '-'}
+                                <input className="text-color-black" type="text" value={commande.adresse_client || '-'} />
+
                             </td>
                             <td className="px-6 py-4">
-                                {commande.commantaire || '-'}
+                            <input className="text-color-black" type="text" value={commande.commantaire || '-'} />
                             </td>
                             <td className="px-6 py-4 flex space-x-2">
                                 <button
@@ -1184,13 +1196,6 @@ function Add_commande() {
                                     title="Supprimer"
                                 >
                                     <FaTrashAlt />
-                                </button>
-                                <button
-                                    onClick={() => edit_commande(commande)}
-                                    className="text-blue-400 hover:text-blue-600"
-                                    title="Modifier"
-                                >
-                                    <FaEdit />
                                 </button>
                             </td>
                         </tr>
@@ -1207,10 +1212,7 @@ function Add_commande() {
                 </svg>
                 <h3 className="text-yellow-400 font-medium">Vérification requise</h3>
             </div>
-            <p className="mt-2 text-sm text-yellow-300">
-                Veuillez vérifier attentivement les commandes importées avant de les ajouter à votre base de données.
-                Les champs marqués en rouge nécessitent une attention particulière.
-            </p>
+
         </div>
     </div>
 )}
