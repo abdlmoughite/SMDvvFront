@@ -55,17 +55,17 @@ function Add_commande() {
         id_user: user.id,
         date_commande: "",
     });
-     const list_produit = useSelector((state) => state.list_produit);
+    const list_produit = useSelector((state) => state.list_produit);
     const [produitTrouve, setProduitTrouve] = useState([]);
-
-useEffect(() => {
-
+    const [validateName,setValidateName]=useState(null)
+    useEffect(() => {
         setProduitTrouve(list_produit);
-}, [list_produit]);
+    }, [list_produit]);
     const dispatch = useDispatch();
     const commandes = useSelector((state) => state.commandes);
-    const [afficher_commandes_excel,setAfficher_commandes_excel]=useState(false)
-    const [list_commande_excel,setList_commande_excel]=useState([])
+    const [afficher_commandes_excel, setAfficher_commandes_excel] =
+        useState(false);
+    const [list_commande_excel, setList_commande_excel] = useState([]);
 
     useEffect(() => {
         dispatch(get_produit());
@@ -102,6 +102,39 @@ useEffect(() => {
             [e.target.name]: e.target.value,
             date_commande: format(new Date(), "yyyy-MM-dd"),
         });
+    };
+
+    const get_valueExcel = (idCommande, e) => {
+        let elementHtml=document.getElementById(idCommande)
+        let commandeRecherch = list_commande_excel.find(
+            (i) => i.id_commande == idCommande
+        );
+        if([e.target.name]=="numero_client"){
+            if(e.target.value.length==10){
+                setValidateName(null)
+                if(elementHtml){
+                   elementHtml.style.display = "none";
+                }
+
+
+
+            }else{
+                setValidateName("ecrire une validate name")
+                if(elementHtml){
+                    elementHtml.style.display = "block";
+                }
+
+            }
+        }
+        commandeRecherch[e.target.name] = e.target.value;
+        setList_commande_excel(
+            list_commande_excel.map((i) => {
+                if (i.id_commande == commandeRecherch.id_commande) {
+                    return commandeRecherch;
+                }
+                return i;
+            })
+        );
     };
 
     const get_valueV = async (option) => {
@@ -412,20 +445,21 @@ useEffect(() => {
         return foundVille;
     };
     const find_produit = (cmnt) => {
-    const id_produit = cmnt.split(",")[0];
+        const id_produit = cmnt.split(",")[0];
 
-    if (Array.isArray(produitTrouve) && produitTrouve.length > 0) {
-        return produitTrouve.find(
-            (produit) => produit.id_produit == id_produit
-        );
-    }
+        if (Array.isArray(produitTrouve) && produitTrouve.length > 0) {
+            return produitTrouve.find(
+                (produit) => produit.id_produit == id_produit
+            );
+        }
 
-    return null; // Aucun produit trouvé ou tableau vide
-};
-
+        return null; // Aucun produit trouvé ou tableau vide
+    };
 
     const ajouterExcelData_json = () => {
-        setAfficher_commandes_excel(true)
+        setAfficher_commandes_excel(true);
+        const id_commande = Date.now();
+        let inc = 0;
         if (excelData && Array.isArray(excelData)) {
             excelData.forEach((row) => {
                 if (
@@ -454,12 +488,15 @@ useEffect(() => {
                     num = num.padStart(10, "0");
                 }
 
+
                 const newCommande = {
-                    id_commande: Date.now().toString(),
+                    id_commande: (id_commande + inc).toString(),
                     nom_client: row["DESTINATAIRE"] || "",
                     numero_client: num,
                     adresse_client: row["ADRESSE"] || "", // Adresse du client
-                    ville: findville(row["VILLE"]) ? findville(row["VILLE"]).label : null,
+                    ville: findville(row["VILLE"])
+                        ? findville(row["VILLE"]).label
+                        : null,
                     ville_id: findville(row["VILLE"])
                         ? findville(row["VILLE"]).id
                         : null,
@@ -469,12 +506,19 @@ useEffect(() => {
                     quntite: 1,
                     prix: row["PRIX"] || 0,
                     commantaire: row["COMMENTAIRE"] || "", // Commentaire
-                    produit_id: find_produit(JSON.stringify(row["COMMENTAIRE"])) ? find_produit(JSON.stringify(row["COMMENTAIRE"])).id : null, // Identifiant du produit (vide pour l'instant)
-                    nom_produit: find_produit(JSON.stringify(row["COMMENTAIRE"])) ? find_produit(JSON.stringify(row["COMMENTAIRE"])).nom : null, // Nature du produit
+                    produit_id: find_produit(JSON.stringify(row["COMMENTAIRE"]))
+                        ? find_produit(JSON.stringify(row["COMMENTAIRE"])).id
+                        : null, // Identifiant du produit (vide pour l'instant)
+                    nom_produit: find_produit(
+                        JSON.stringify(row["COMMENTAIRE"])
+                    )
+                        ? find_produit(JSON.stringify(row["COMMENTAIRE"])).nom
+                        : null, // Nature du produit
                     id_user: user.id, // Identifiant de l'utilisateur
                     date_commande: format(new Date(), "yyyy-MM-dd"),
                 };
-                setList_commande_excel(prev => [...prev, newCommande]);
+                setList_commande_excel((prev) => [...prev, newCommande]);
+                inc = inc + 1;
             });
 
             setExcelData(null);
@@ -491,30 +535,40 @@ useEffect(() => {
         commandeRecherch.ville = newville;
         commandeRecherch.ville_id = findville(newville).id;
         commandeRecherch.prix_livraison = findville(newville).DELIVERED;
-        setList_commande_excel(list_commande_excel.map((i)=>{
-            if(i.id_commande==idcommande){
-                return commandeRecherch
-            }
-            return i
-        }))
-
+        setList_commande_excel(
+            list_commande_excel.map((i) => {
+                if (i.id_commande == idcommande) {
+                    return commandeRecherch;
+                }
+                return i;
+            })
+        );
     };
     const modifieProduit = (idcommande, newproduit_id) => {
-        const commandeRecherch = list_commande_excel.find(
+        let commandeRecherch = list_commande_excel.find(
             (item) => item.id_commande == idcommande
         );
-        const new_produit=list_produit.find((i)=>i.id_produit==newproduit_id)
+        const new_produit = list_produit.find(
+            (i) => i.id_produit == newproduit_id
+        );
+        let cmnt_commande = commandeRecherch.commantaire.toString();
+        alert(typeof cmnt_commande);
+        let table_commantaire = cmnt_commande.split(",");
+        table_commantaire[0] = new_produit.id_produit;
+        commandeRecherch.commantaire = table_commantaire.join(",");
         commandeRecherch.produit_id = new_produit.id_produit;
         commandeRecherch.nom_produit = new_produit.nom;
-        setList_commande_excel(list_commande_excel.map((i)=>{
-            if(i.id_commande==idcommande){
-                return commandeRecherch
-            }
-            return i
-        }))
+        setList_commande_excel(
+            list_commande_excel.map((i) => {
+                if (i.id_commande == idcommande) {
+                    return commandeRecherch;
+                }
+                return i;
+            })
+        );
     };
 
-    console.log("new ville",list_commande_excel)
+    console.log("new ville", list_commande_excel);
     return (
         <div className="p-4 bg-gray-900 min-h-screen text-white">
             {loading === true || user === undefined ? (
@@ -945,7 +999,6 @@ useEffect(() => {
                                                     null ? (
                                                         <select
                                                             name="produit_id"
-
                                                             className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-400 focus:outline-none"
                                                         >
                                                             <option value="">
@@ -986,7 +1039,6 @@ useEffect(() => {
                                                             value={
                                                                 commande.produit_id
                                                             }
-
                                                             className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-400 focus:outline-none"
                                                         >
                                                             <option value="">
@@ -1107,112 +1159,228 @@ useEffect(() => {
                             </button>
                         </div>
                     </div>
-                    {afficher_commandes_excel && (
-    <div className="mt-6 p-6 bg-gray-800 shadow-lg rounded-lg border border-gray-700">
-        <div className="mb-4 flex justify-between items-center">
-            <h2 className="text-lg font-semibold text-blue-400">
-                Commandes importées depuis Excel
-            </h2>
-            <span className="px-3 py-1 bg-blue-600 text-white text-sm rounded-full">
-                {list_commande_excel.length} commandes
-            </span>
-        </div>
+{afficher_commandes_excel && (
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+        <div className="bg-gray-800 rounded-lg shadow-xl border border-gray-700 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+                <div className="mb-4 flex justify-between items-center">
+                    <h2 className="text-lg font-semibold text-blue-400">
+                        Commandes importées depuis Excel
+                    </h2>
+                    <span className="px-3 py-1 bg-blue-600 text-white text-sm rounded-full">
+                        {list_commande_excel.length} commandes
+                    </span>
+                </div>
 
-        <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
-            <table className="w-full text-sm text-left text-gray-300">
-                <thead className="text-xs text-blue-400 uppercase bg-gray-700">
-                    <tr>
-                        <th scope="col" className="px-6 py-3">ID</th>
-                        <th scope="col" className="px-6 py-3">Client</th>
-                        <th scope="col" className="px-6 py-3">Téléphone</th>
-                        <th scope="col" className="px-6 py-3">Ville</th>
-                        <th scope="col" className="px-6 py-3">Prix</th>
-                        <th scope="col" className="px-6 py-3">Produit</th>
-                        <th scope="col" className="px-6 py-3">Adresse</th>
-                        <th scope="col" className="px-6 py-3">Commentaire</th>
-                        <th scope="col" className="px-6 py-3">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {list_commande_excel.map((commande, index) => (
-                        <tr
-                            key={index}
-                            className={`border-b ${index % 2 === 0 ? 'bg-gray-800' : 'bg-gray-700'} hover:bg-gray-600`}
-                        >
-                            <td className="px-6 py-4">{commande.id_commande || '-'}</td>
-                            <td className={`px-6 py-4 ${!commande.nom_client ? 'bg-red-900' : ''}`}>
-                                <input className="text-color-black" type="text" value={commande.nom_client || ''} />
-                            </td>
-                            <td className={`px-6 py-4 ${!commande.numero_client ? 'bg-red-900' : ''}`}>
-                                <input className="text-color-black" type="text" value={commande.numero_client || ''} />
-
-                            </td>
-                            <td className={`px-6 py-4 ${!commande.ville ? 'bg-red-900' : ''}`}>
-                                {commande.ville === null ? (
-                                    <Select
-                                        options={list_villes}
-                                        placeholder="Choisir une ville"
-                                        onChange={(e) => modifieVille(commande.id_commande, e.value)}
-                                        className="basic-single"
-                                        classNamePrefix="select"
-                                    />
-                                ) : (
-                                    <Select
-                                        options={list_villes}
-                                        value={list_villes.find(ville => ville.value === commande.ville)}
-                                        onChange={(e) => modifieVille(commande.id_commande, e.value)}
-                                        className="basic-single"
-                                        classNamePrefix="select"
-                                    />
-                                )}
-                            </td>
-                            <td className="px-6 py-4">
-                                <input className="text-color-black" type="text" value={commande.prix || 0} />
-                            </td>
-                            <td className="px-6 py-4">
-                                <select
-                                        onChange={(e) => modifieProduit(commande.id_commande, e.target.value)}
-                                        className="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2"
-                                    >
-                                        <option value={commande.id_commande}>{commande.nom_produit}</option>
-                                        {list_produit.map(produit => (
-                                            <option key={produit.id_produit} value={produit.id_produit}>
-                                                {produit.nom}
-                                            </option>
-                                        ))}
-                                    </select>
-                            </td>
-                            <td className={`px-6 py-4 ${!commande.adresse_client ? 'bg-red-900' : ''}`}>
-                                <input className="text-color-black" type="text" value={commande.adresse_client || '-'} />
-
-                            </td>
-                            <td className="px-6 py-4">
-                            <input className="text-color-black" type="text" value={commande.commantaire || '-'} />
-                            </td>
-                            <td className="px-6 py-4 flex space-x-2">
-                                <button
-                                    onClick={() => supprimer_commande(commande)}
-                                    className="text-red-400 hover:text-red-600"
-                                    title="Supprimer"
+                <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
+                    <table className="w-full text-sm text-left text-gray-300">
+                        <thead className="text-xs text-blue-400 uppercase bg-gray-700">
+                            <tr>
+                                <th scope="col" className="px-6 py-3">ID</th>
+                                <th scope="col" className="px-6 py-3">Client</th>
+                                <th scope="col" className="px-6 py-3">Téléphone</th>
+                                <th scope="col" className="px-6 py-3">Ville</th>
+                                <th scope="col" className="px-6 py-3">Prix</th>
+                                <th scope="col" className="px-6 py-3">Produit</th>
+                                <th scope="col" className="px-6 py-3">Adresse</th>
+                                <th scope="col" className="px-6 py-3">Commentaire</th>
+                                <th scope="col" className="px-6 py-3">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {list_commande_excel.map((commande, index) => (
+                                <tr
+                                    key={index}
+                                    className={`border-b ${
+                                        index % 2 === 0 ? "bg-gray-800" : "bg-gray-700"
+                                    } hover:bg-gray-600`}
                                 >
-                                    <FaTrashAlt />
-                                </button>
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
+                                    <td className="px-6 py-4">
+                                        {commande.id_commande || "-"}
+                                    </td>
+                                    <td className={`px-6 py-4 ${
+                                        !commande.nom_client ? "bg-red-900 bg-opacity-30" : ""
+                                    }`}>
+                                        <input
+                                            className="w-full px-3 py-1 bg-gray-700 border border-gray-600 rounded text-white focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                                            type="text"
+                                            name="nom_client"
+                                            value={commande.nom_client || ""}
+                                            onChange={(e) => {
+                                                get_valueExcel(commande.id_commande, e);
+                                            }}
+                                        />
+                                    </td>
+                                    <td className={`px-6 py-4 ${
+                                        !commande.numero_client || commande.numero_client.length !== 10
+                                            ? "bg-red-900 bg-opacity-30"
+                                            : ""
+                                    }`}>
+                                        <input
+                                            className="w-full px-3 py-1 bg-gray-700 border border-gray-600 rounded text-white focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                                            type="text"
+                                            name="numero_client"
+                                            value={commande.numero_client || ""}
+                                            onChange={(e) => {
+                                                get_valueExcel(commande.id_commande, e);
+                                            }}
+                                        />
+                                        {(!commande.numero_client || commande.numero_client.length !== 10) && (
+                                            <p className="text-red-400 text-xs mt-1">
+                                                Numéro invalide (10 chiffres requis)
+                                            </p>
+                                        )}
+                                    </td>
+                                    <td className={`px-6 py-4 ${
+                                        !commande.ville ? "bg-red-900 bg-opacity-30" : ""
+                                    }`}>
+                                        {commande.ville === null ? (
+                                            <Select
+                                                options={list_villes}
+                                                placeholder="Choisir une ville"
+                                                onChange={(e) =>
+                                                    modifieVille(
+                                                        commande.id_commande,
+                                                        e.value
+                                                    )
+                                                }
+                                                className="react-select-container"
+                                                classNamePrefix="react-select"
+                                            />
+                                        ) : (
+                                            <Select
+                                                options={list_villes}
+                                                value={list_villes.find(
+                                                    (ville) =>
+                                                        ville.value ===
+                                                        commande.ville
+                                                )}
+                                                onChange={(e) =>
+                                                    modifieVille(
+                                                        commande.id_commande,
+                                                        e.value
+                                                    )
+                                                }
+                                                className="react-select-container"
+                                                classNamePrefix="react-select"
+                                            />
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <input
+                                            className="w-full px-3 py-1 bg-gray-700 border border-gray-600 rounded text-white focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                                            type="text"
+                                            name="prix"
+                                            value={commande.prix || 0}
+                                            onChange={(e) => {
+                                                get_valueExcel(commande.id_commande, e);
+                                            }}
+                                        />
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <select
+                                            onChange={(e) =>
+                                                modifieProduit(
+                                                    commande.id_commande,
+                                                    e.target.value
+                                                )
+                                            }
+                                            className="w-full px-3 py-1 bg-gray-700 border border-gray-600 rounded text-white focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                                        >
+                                            <option value={commande.id_commande}>
+                                                {commande.nom_produit}
+                                            </option>
+                                            {list_produit.map((produit) => (
+                                                <option
+                                                    key={produit.id_produit}
+                                                    value={produit.id_produit}
+                                                >
+                                                    {produit.nom}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </td>
+                                    <td className={`px-6 py-4 ${
+                                        !commande.adresse_client ? "bg-red-900 bg-opacity-30" : ""
+                                    }`}>
+                                        <input
+                                            className="w-full px-3 py-1 bg-gray-700 border border-gray-600 rounded text-white focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                                            type="text"
+                                            name="adresse_client"
+                                            value={commande.adresse_client || ""}
+                                            onChange={(e) => {
+                                                get_valueExcel(commande.id_commande, e);
+                                            }}
+                                        />
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <input
+                                            name="commantaire"
+                                            className="w-full px-3 py-1 bg-gray-700 border border-gray-600 rounded text-white focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                                            type="text"
+                                            value={commande.commantaire || ""}
+                                            onChange={(e) => {
+                                                get_valueExcel(commande.id_commande, e);
+                                            }}
+                                        />
+                                    </td>
+                                    <td className="px-6 py-4 flex space-x-2">
+                                        <button
+                                            onClick={() =>
+                                                supprimer_commande(commande)
+                                            }
+                                            className="text-red-400 hover:text-red-600"
+                                            title="Supprimer"
+                                        >
+                                            <FaTrashAlt />
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
 
-        {/* Alert Box */}
-        <div className="mt-4 p-4 bg-yellow-900 bg-opacity-30 border border-yellow-700 rounded-lg">
-            <div className="flex items-center">
-                <svg className="w-5 h-5 text-yellow-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-                <h3 className="text-yellow-400 font-medium">Vérification requise</h3>
+                {/* Alert Box */}
+                <div className="mt-4 p-4 bg-yellow-900 bg-opacity-30 border border-yellow-700 rounded-lg">
+                    <div className="flex items-center">
+                        <svg
+                            className="w-5 h-5 text-yellow-400 mr-2"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                        >
+                            <path
+                                fillRule="evenodd"
+                                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                clipRule="evenodd"
+                            />
+                        </svg>
+                        <h3 className="text-yellow-400 font-medium">
+                            Vérification requise avant importation
+                        </h3>
+                    </div>
+                    <p className="mt-2 text-yellow-300 text-sm">
+                        Veuillez vérifier toutes les informations avant de procéder à l'importation.
+                        Les champs marqués en rouge nécessitent une attention particulière.
+                    </p>
+                </div>
+
+                {/* Boutons d'action */}
+                <div className="mt-6 flex justify-end space-x-4">
+                    <button
+                        onClick={() =>setAfficher_commandes_excel(false)}
+                        className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg"
+                    >
+                        Annuler
+                    </button>
+                    <button
+                        onClick={ajouterExcelData_json}
+                        className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                    >
+                        Confirmer l'importation
+                    </button>
+                </div>
             </div>
-
         </div>
     </div>
 )}
