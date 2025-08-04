@@ -57,7 +57,7 @@ function Add_commande() {
     });
     const list_produit = useSelector((state) => state.list_produit);
     const [produitTrouve, setProduitTrouve] = useState([]);
-    const [validateName,setValidateName]=useState(null)
+    const [validateName, setValidateName] = useState(null);
     useEffect(() => {
         setProduitTrouve(list_produit);
     }, [list_produit]);
@@ -66,6 +66,8 @@ function Add_commande() {
     const [afficher_commandes_excel, setAfficher_commandes_excel] =
         useState(false);
     const [list_commande_excel, setList_commande_excel] = useState([]);
+    const [erreur_list_commande_excel, setErreur_list_commande_excel] =
+        useState([]);
 
     useEffect(() => {
         dispatch(get_produit());
@@ -105,25 +107,21 @@ function Add_commande() {
     };
 
     const get_valueExcel = (idCommande, e) => {
-        let elementHtml=document.getElementById(idCommande)
+        let elementHtml = document.getElementById(idCommande);
         let commandeRecherch = list_commande_excel.find(
             (i) => i.id_commande == idCommande
         );
-        if([e.target.name]=="numero_client"){
-            if(e.target.value.length==10){
-                setValidateName(null)
-                if(elementHtml){
-                   elementHtml.style.display = "none";
+        if ([e.target.name] == "numero_client") {
+            if (e.target.value.length == 10) {
+                setValidateName(null);
+                if (elementHtml) {
+                    elementHtml.style.display = "none";
                 }
-
-
-
-            }else{
-                setValidateName("ecrire une validate name")
-                if(elementHtml){
+            } else {
+                setValidateName("ecrire une validate name");
+                if (elementHtml) {
                     elementHtml.style.display = "block";
                 }
-
             }
         }
         commandeRecherch[e.target.name] = e.target.value;
@@ -275,7 +273,7 @@ function Add_commande() {
                 });
             }
         } else {
-            alert("chi haja khawya");
+            return null;
         }
     };
 
@@ -408,7 +406,9 @@ function Add_commande() {
     };
 
     const [excelData, setExcelData] = useState(null);
+    
     const handleFileUpload = (e) => {
+        setList_commande_excel([])
         const file = e.target.files[0];
 
         if (
@@ -488,7 +488,6 @@ function Add_commande() {
                     num = num.padStart(10, "0");
                 }
 
-
                 const newCommande = {
                     id_commande: (id_commande + inc).toString(),
                     nom_client: row["DESTINATAIRE"] || "",
@@ -525,6 +524,7 @@ function Add_commande() {
             toast.success("✅ Données ajoutées avec succès !");
         } else {
             toast.error("❌ Aucune donnée à ajouter !");
+            
         }
     };
 
@@ -552,7 +552,7 @@ function Add_commande() {
             (i) => i.id_produit == newproduit_id
         );
         let cmnt_commande = commandeRecherch.commantaire.toString();
-        alert(typeof cmnt_commande);
+
         let table_commantaire = cmnt_commande.split(",");
         table_commantaire[0] = new_produit.id_produit;
         commandeRecherch.commantaire = table_commantaire.join(",");
@@ -568,12 +568,91 @@ function Add_commande() {
         );
     };
 
+    const validateListExcel = (commande) => {
+        let newErrors = {};
+
+        if (!commande.id_commande) {
+            newErrors.id_commande =
+                "Le ID de la commande est requis ou déjà utilisé";
+        }
+
+        if (!commande.nom_client) {
+            newErrors.nom_client = "Le nom du client est requis";
+        }
+
+        if (!commande.numero_client) {
+            newErrors.numero_client = "Le numéro du client est requis";
+        } else if (commande.numero_client.length !== 10) {
+            newErrors.numero_client =
+                "Le numéro du client doit contenir exactement 10 chiffres";
+        }
+
+        if (!commande.adresse_client) {
+            newErrors.adresse_client = "L'adresse du client est requise";
+        }
+
+        if (!commande.ville) {
+            newErrors.ville = "La ville est requise";
+        }
+
+        if (!commande.prix) {
+            newErrors.prix = "Le prix est requis";
+        }
+
+        if (!commande.nom_produit) {
+            newErrors.nom_produit = "Le nom du produit est requis";
+        }
+
+        if (!commande.commantaire) {
+            newErrors.commantaire = "Le commentaire est requis";
+        }
+
+        return newErrors;
+    };
+
+    const ExcelToJson = () => {
+        let newErrors = [];
+        let listCommandeAjouter = [];
+        list_commande_excel.map((commande) => {
+            let validation = validateListExcel(commande);
+            console.log("validateddata", commande.id_commande, validation);
+            if (Object.keys(validation).length == 0) {
+                dispatch(add_commandes(commande));
+                dispatch(set_qnt_produit(commande.produit_id));
+                listCommandeAjouter.push(commande.id_commande);
+            } else {
+                // correction ici : clé dynamique avec []
+                newErrors.push({ [commande.id_commande]: validation });
+            }
+        });
+        setList_commande_excel(
+            list_commande_excel.filter(
+                (i) => !listCommandeAjouter.includes(i.id_commande)
+            )
+        );
+        setErreur_list_commande_excel(newErrors);
+    };
+
+    const delete_cmd_excel=(id_commande)=>{
+           setList_commande_excel(
+            list_commande_excel.filter(
+                (i) => (i.id_commande)!=id_commande
+            )
+        );
+
+    }
     console.log("new ville", list_commande_excel);
     return (
         <div className="p-4 bg-gray-900 min-h-screen text-white">
             {loading === true || user === undefined ? (
-                <div className="justify-center items-center h-screen">
-                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-400"></div>
+                <div className="flex flex-col items-center justify-center h-screen space-y-4">
+                    <div className="relative w-20 h-20">
+                        <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-blue-400 border-r-blue-400 animate-spin"></div>
+                        <div className="absolute inset-2 rounded-full border-4 border-transparent border-b-blue-400 border-l-blue-400 animate-spin-reverse"></div>
+                    </div>
+                    <p className="text-blue-400 font-medium">
+                        Chargement des données...
+                    </p>
                 </div>
             ) : (
                 <div className="w-full m-4">
@@ -902,7 +981,7 @@ function Add_commande() {
                                             >
                                                 <td
                                                     className="px-6
-                                            py-4 whitespace-nowrap text-sm text-gray-300"
+                                        py-4 whitespace-nowrap text-sm text-gray-300"
                                                 >
                                                     {commande.id_commande}
                                                 </td>
@@ -932,46 +1011,15 @@ function Add_commande() {
                                                 </td>
                                                 <td
                                                     className={`px-6 ${
-                                                        commande.ville == "" ||
-                                                        commande.ville == null
+                                                        commande.numero_client ==
+                                                            "" ||
+                                                        commande.numero_client ==
+                                                            null
                                                             ? "bg-red-500"
                                                             : ""
                                                     } py-4 whitespace-nowrap text-sm text-gray-300`}
                                                 >
-                                                    {commande.ville == "?" ? (
-                                                        <Select
-                                                            options={
-                                                                list_villes
-                                                            }
-                                                            placeholder="Choisir une ville"
-                                                            onChange={(e) =>
-                                                                modifieVille(
-                                                                    commande.id_commande,
-                                                                    e.value
-                                                                )
-                                                            }
-                                                        />
-                                                    ) : (
-                                                        <Select
-                                                            onChange={(e) =>
-                                                                modifieVille(
-                                                                    commande.id_commande,
-                                                                    e.value
-                                                                )
-                                                            }
-                                                            name="ville"
-                                                            placeholder="Choisir une ville"
-                                                            className="bg-green-400 text-slate-950"
-                                                            options={
-                                                                list_villes
-                                                            }
-                                                            value={list_villes.find(
-                                                                (ville) =>
-                                                                    ville.value ===
-                                                                    commande.ville
-                                                            )}
-                                                        />
-                                                    )}
+                                                    {commande.ville}
                                                 </td>
                                                 <td
                                                     className={`px-6 ${
@@ -1159,231 +1207,755 @@ function Add_commande() {
                             </button>
                         </div>
                     </div>
-{afficher_commandes_excel && (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-        <div className="bg-gray-800 rounded-lg shadow-xl border border-gray-700 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-                <div className="mb-4 flex justify-between items-center">
-                    <h2 className="text-lg font-semibold text-blue-400">
-                        Commandes importées depuis Excel
-                    </h2>
-                    <span className="px-3 py-1 bg-blue-600 text-white text-sm rounded-full">
-                        {list_commande_excel.length} commandes
-                    </span>
-                </div>
+                    {afficher_commandes_excel && (
+                        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+                            <div className="bg-gray-800 rounded-lg shadow-xl border border-gray-700 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+                                <div className="p-6">
+                                    <div className="mb-4 flex justify-between items-center">
+                                        <h2 className="text-lg font-semibold text-blue-400">
+                                            Commandes importées depuis Excel
+                                        </h2>
+                                        <span className="px-3 py-1 bg-blue-600 text-white text-sm rounded-full">
+                                            {list_commande_excel.length}{" "}
+                                            commandes
+                                        </span>
+                                    </div>
 
-                <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
-                    <table className="w-full text-sm text-left text-gray-300">
-                        <thead className="text-xs text-blue-400 uppercase bg-gray-700">
-                            <tr>
-                                <th scope="col" className="px-6 py-3">ID</th>
-                                <th scope="col" className="px-6 py-3">Client</th>
-                                <th scope="col" className="px-6 py-3">Téléphone</th>
-                                <th scope="col" className="px-6 py-3">Ville</th>
-                                <th scope="col" className="px-6 py-3">Prix</th>
-                                <th scope="col" className="px-6 py-3">Produit</th>
-                                <th scope="col" className="px-6 py-3">Adresse</th>
-                                <th scope="col" className="px-6 py-3">Commentaire</th>
-                                <th scope="col" className="px-6 py-3">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {list_commande_excel.map((commande, index) => (
-                                <tr
-                                    key={index}
-                                    className={`border-b ${
-                                        index % 2 === 0 ? "bg-gray-800" : "bg-gray-700"
-                                    } hover:bg-gray-600`}
-                                >
-                                    <td className="px-6 py-4">
-                                        {commande.id_commande || "-"}
-                                    </td>
-                                    <td className={`px-6 py-4 ${
-                                        !commande.nom_client ? "bg-red-900 bg-opacity-30" : ""
-                                    }`}>
-                                        <input
-                                            className="w-full px-3 py-1 bg-gray-700 border border-gray-600 rounded text-white focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                                            type="text"
-                                            name="nom_client"
-                                            value={commande.nom_client || ""}
-                                            onChange={(e) => {
-                                                get_valueExcel(commande.id_commande, e);
-                                            }}
-                                        />
-                                    </td>
-                                    <td className={`px-6 py-4 ${
-                                        !commande.numero_client || commande.numero_client.length !== 10
-                                            ? "bg-red-900 bg-opacity-30"
-                                            : ""
-                                    }`}>
-                                        <input
-                                            className="w-full px-3 py-1 bg-gray-700 border border-gray-600 rounded text-white focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                                            type="text"
-                                            name="numero_client"
-                                            value={commande.numero_client || ""}
-                                            onChange={(e) => {
-                                                get_valueExcel(commande.id_commande, e);
-                                            }}
-                                        />
-                                        {(!commande.numero_client || commande.numero_client.length !== 10) && (
-                                            <p className="text-red-400 text-xs mt-1">
-                                                Numéro invalide (10 chiffres requis)
-                                            </p>
-                                        )}
-                                    </td>
-                                    <td className={`px-6 py-4 ${
-                                        !commande.ville ? "bg-red-900 bg-opacity-30" : ""
-                                    }`}>
-                                        {commande.ville === null ? (
-                                            <Select
-                                                options={list_villes}
-                                                placeholder="Choisir une ville"
-                                                onChange={(e) =>
-                                                    modifieVille(
-                                                        commande.id_commande,
-                                                        e.value
+                                    <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
+                                        <table className="w-full text-sm text-left text-gray-300">
+                                            <thead className="text-xs text-blue-400 uppercase bg-gray-700">
+                                                <tr>
+                                                    <th
+                                                        scope="col"
+                                                        className="px-6 py-3"
+                                                    >
+                                                        ID
+                                                    </th>
+                                                    <th
+                                                        scope="col"
+                                                        className="px-6 py-3"
+                                                    >
+                                                        Client
+                                                    </th>
+                                                    <th
+                                                        scope="col"
+                                                        className="px-6 py-3"
+                                                    >
+                                                        Téléphone
+                                                    </th>
+                                                    <th
+                                                        scope="col"
+                                                        className="px-6 py-3"
+                                                    >
+                                                        Ville
+                                                    </th>
+                                                    <th
+                                                        scope="col"
+                                                        className="px-6 py-3"
+                                                    >
+                                                        Prix
+                                                    </th>
+                                                    <th
+                                                        scope="col"
+                                                        className="px-6 py-3"
+                                                    >
+                                                        Produit
+                                                    </th>
+                                                    <th
+                                                        scope="col"
+                                                        className="px-6 py-3"
+                                                    >
+                                                        Adresse
+                                                    </th>
+                                                    <th
+                                                        scope="col"
+                                                        className="px-6 py-3"
+                                                    >
+                                                        Commentaire
+                                                    </th>
+                                                    <th
+                                                        scope="col"
+                                                        className="px-6 py-3"
+                                                    >
+                                                        Actions
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {list_commande_excel.map(
+                                                    (commande, index) => (
+                                                        <tr
+                                                            key={index}
+                                                            className={`border-b ${
+                                                                index % 2 === 0
+                                                                    ? "bg-gray-800"
+                                                                    : "bg-gray-700"
+                                                            } hover:bg-gray-600`}
+                                                        >
+                                                            <td className="px-6 py-4">
+                                                                {commande.id_commande ||
+                                                                    "-"}
+                                                            </td>
+                                                            <td
+                                                                className={`px-6 py-4 ${
+                                                                    !commande.nom_client
+                                                                        ? "bg-red-900 bg-opacity-30"
+                                                                        : ""
+                                                                }`}
+                                                            >
+                                                                <input
+                                                                    className="w-full px-3 py-1 bg-gray-700 border border-gray-600 rounded text-white focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                                                                    type="text"
+                                                                    name="nom_client"
+                                                                    value={
+                                                                        commande.nom_client ||
+                                                                        ""
+                                                                    }
+                                                                    onChange={(
+                                                                        e
+                                                                    ) => {
+                                                                        get_valueExcel(
+                                                                            commande.id_commande,
+                                                                            e
+                                                                        );
+                                                                    }}
+                                                                />
+                                                            </td>
+                                                            <td
+                                                                className={`px-6 py-4 ${
+                                                                    !commande.numero_client ||
+                                                                    commande
+                                                                        .numero_client
+                                                                        .length !==
+                                                                        10
+                                                                        ? "bg-red-900 bg-opacity-30"
+                                                                        : ""
+                                                                }`}
+                                                            >
+                                                                <input
+                                                                    className="w-full px-3 py-1 bg-gray-700 border border-gray-600 rounded text-white focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                                                                    type="text"
+                                                                    name="numero_client"
+                                                                    value={
+                                                                        commande.numero_client ||
+                                                                        ""
+                                                                    }
+                                                                    onChange={(
+                                                                        e
+                                                                    ) => {
+                                                                        get_valueExcel(
+                                                                            commande.id_commande,
+                                                                            e
+                                                                        );
+                                                                    }}
+                                                                />
+                                                                {(!commande.numero_client ||
+                                                                    commande
+                                                                        .numero_client
+                                                                        .length !==
+                                                                        10) && (
+                                                                    <p className="text-red-400 text-xs mt-1">
+                                                                        Numéro
+                                                                        invalide
+                                                                        (10
+                                                                        chiffres
+                                                                        requis)
+                                                                    </p>
+                                                                )}
+                                                            </td>
+                                                            <td
+                                                                className={`px-6 py-4 ${
+                                                                    !commande.ville
+                                                                        ? "bg-red-900 bg-opacity-30"
+                                                                        : ""
+                                                                }`}
+                                                            >
+                                                                {commande.ville ===
+                                                                null ? (
+                                                                    <Select
+                                                                        options={
+                                                                            list_villes
+                                                                        }
+                                                                        placeholder="Choisir une ville"
+                                                                        onChange={(
+                                                                            e
+                                                                        ) =>
+                                                                            modifieVille(
+                                                                                commande.id_commande,
+                                                                                e.value
+                                                                            )
+                                                                        }
+                                                                        className="react-select-container"
+                                                                        classNamePrefix="react-select"
+                                                                    />
+                                                                ) : (
+                                                                    <Select
+                                                                        options={
+                                                                            list_villes
+                                                                        }
+                                                                        value={list_villes.find(
+                                                                            (
+                                                                                ville
+                                                                            ) =>
+                                                                                ville.value ===
+                                                                                commande.ville
+                                                                        )}
+                                                                        onChange={(
+                                                                            e
+                                                                        ) =>
+                                                                            modifieVille(
+                                                                                commande.id_commande,
+                                                                                e.value
+                                                                            )
+                                                                        }
+                                                                        className="react-select-container"
+                                                                        classNamePrefix="react-select"
+                                                                    />
+                                                                )}
+                                                            </td>
+                                                            <td className="px-6 py-4">
+                                                                <input
+                                                                    className="w-full px-3 py-1 bg-gray-700 border border-gray-600 rounded text-white focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                                                                    type="text"
+                                                                    name="prix"
+                                                                    value={
+                                                                        commande.prix ||
+                                                                        0
+                                                                    }
+                                                                    onChange={(
+                                                                        e
+                                                                    ) => {
+                                                                        get_valueExcel(
+                                                                            commande.id_commande,
+                                                                            e
+                                                                        );
+                                                                    }}
+                                                                />
+                                                            </td>
+                                                            <td className="px-6 py-4">
+                                                                <select
+                                                                    onChange={(
+                                                                        e
+                                                                    ) =>
+                                                                        modifieProduit(
+                                                                            commande.id_commande,
+                                                                            e
+                                                                                .target
+                                                                                .value
+                                                                        )
+                                                                    }
+                                                                    className="w-full px-3 py-1 bg-gray-700 border border-gray-600 rounded text-white focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                                                                >
+                                                                    <option
+                                                                        value={
+                                                                            commande.id_commande
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            commande.nom_produit
+                                                                        }
+                                                                    </option>
+                                                                    {list_produit.map(
+                                                                        (
+                                                                            produit
+                                                                        ) => (
+                                                                            <option
+                                                                                key={
+                                                                                    produit.id_produit
+                                                                                }
+                                                                                value={
+                                                                                    produit.id_produit
+                                                                                }
+                                                                            >
+                                                                                {
+                                                                                    produit.nom
+                                                                                }
+                                                                            </option>
+                                                                        )
+                                                                    )}
+                                                                </select>
+                                                            </td>
+                                                            <td
+                                                                className={`px-6 py-4 ${
+                                                                    !commande.adresse_client
+                                                                        ? "bg-red-900 bg-opacity-30"
+                                                                        : ""
+                                                                }`}
+                                                            >
+                                                                <input
+                                                                    className="w-full px-3 py-1 bg-gray-700 border border-gray-600 rounded text-white focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                                                                    type="text"
+                                                                    name="adresse_client"
+                                                                    value={
+                                                                        commande.adresse_client ||
+                                                                        ""
+                                                                    }
+                                                                    onChange={(
+                                                                        e
+                                                                    ) => {
+                                                                        get_valueExcel(
+                                                                            commande.id_commande,
+                                                                            e
+                                                                        );
+                                                                    }}
+                                                                />
+                                                            </td>
+                                                            <td className="px-6 py-4">
+                                                                <input
+                                                                    name="commantaire"
+                                                                    className="w-full px-3 py-1 bg-gray-700 border border-gray-600 rounded text-white focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                                                                    type="text"
+                                                                    value={
+                                                                        commande.commantaire ||
+                                                                        ""
+                                                                    }
+                                                                    onChange={(
+                                                                        e
+                                                                    ) => {
+                                                                        get_valueExcel(
+                                                                            commande.id_commande,
+                                                                            e
+                                                                        );
+                                                                    }}
+                                                                />
+                                                            </td>
+                                                            <td className="px-6 py-4 flex space-x-2">
+                                                                <button
+                                                                    onClick={() =>
+                                                                        supprimer_commande(
+                                                                            commande
+                                                                        )
+                                                                    }
+                                                                    className="text-red-400 hover:text-red-600"
+                                                                    title="Supprimer"
+                                                                >
+                                                                    <FaTrashAlt />
+                                                                </button>
+                                                            </td>
+                                                        </tr>
                                                     )
-                                                }
-                                                className="react-select-container"
-                                                classNamePrefix="react-select"
-                                            />
-                                        ) : (
-                                            <Select
-                                                options={list_villes}
-                                                value={list_villes.find(
-                                                    (ville) =>
-                                                        ville.value ===
-                                                        commande.ville
                                                 )}
-                                                onChange={(e) =>
-                                                    modifieVille(
-                                                        commande.id_commande,
-                                                        e.value
-                                                    )
-                                                }
-                                                className="react-select-container"
-                                                classNamePrefix="react-select"
-                                            />
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <input
-                                            className="w-full px-3 py-1 bg-gray-700 border border-gray-600 rounded text-white focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                                            type="text"
-                                            name="prix"
-                                            value={commande.prix || 0}
-                                            onChange={(e) => {
-                                                get_valueExcel(commande.id_commande, e);
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    {/* Boutons d'action */}
+                                    <div className="mt-6 flex justify-end space-x-4">
+                                        <button
+                                            onClick={() => {
+                                                setAfficher_commandes_excel(
+                                                    false
+                                                );
+                                                setList_commande_excel([]);
+                                                
                                             }}
-                                        />
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <select
-                                            onChange={(e) =>
-                                                modifieProduit(
-                                                    commande.id_commande,
-                                                    e.target.value
-                                                )
-                                            }
-                                            className="w-full px-3 py-1 bg-gray-700 border border-gray-600 rounded text-white focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                                            className="px-4 py-1.5 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm"
                                         >
-                                            <option value={commande.id_commande}>
-                                                {commande.nom_produit}
-                                            </option>
-                                            {list_produit.map((produit) => (
-                                                <option
-                                                    key={produit.id_produit}
-                                                    value={produit.id_produit}
-                                                >
-                                                    {produit.nom}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </td>
-                                    <td className={`px-6 py-4 ${
-                                        !commande.adresse_client ? "bg-red-900 bg-opacity-30" : ""
-                                    }`}>
-                                        <input
-                                            className="w-full px-3 py-1 bg-gray-700 border border-gray-600 rounded text-white focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                                            type="text"
-                                            name="adresse_client"
-                                            value={commande.adresse_client || ""}
-                                            onChange={(e) => {
-                                                get_valueExcel(commande.id_commande, e);
-                                            }}
-                                        />
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <input
-                                            name="commantaire"
-                                            className="w-full px-3 py-1 bg-gray-700 border border-gray-600 rounded text-white focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                                            type="text"
-                                            value={commande.commantaire || ""}
-                                            onChange={(e) => {
-                                                get_valueExcel(commande.id_commande, e);
-                                            }}
-                                        />
-                                    </td>
-                                    <td className="px-6 py-4 flex space-x-2">
+                                            Annuler
+                                        </button>
+                                        <button
+                                            onClick={ExcelToJson}
+                                            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                                        >
+                                            Confirmer l'importation
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {afficher_commandes_excel && (
+                        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 overflow-y-auto">
+                            <div className="bg-gray-800 rounded-lg shadow-xl border border-gray-700 w-[95vw] max-w-[98vw] max-h-[90vh] overflow-y-auto">
+                                <div className="p-4">
+                                    <div className="mb-3 flex justify-between items-center">
+                                        <h2 className="text-lg font-semibold text-blue-400">
+                                            Commandes importées depuis Excel
+                                        </h2>
+                                        <span className="px-2 py-0.5 bg-blue-600 text-white text-xs rounded-full">
+                                            {list_commande_excel.length}{" "}
+                                            commandes
+                                        </span>
+                                    </div>
+
+                                    <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
+                                        <table className="w-full text-xs text-left text-gray-300">
+                                            <thead className="text-xs text-blue-400 uppercase bg-gray-700">
+                                                <tr>
+                                                    <th
+                                                        scope="col"
+                                                        className="px-3 py-2"
+                                                    >
+                                                        ID
+                                                    </th>
+                                                    <th
+                                                        scope="col"
+                                                        className="px-3 py-2"
+                                                    >
+                                                        Client
+                                                    </th>
+                                                    <th
+                                                        scope="col"
+                                                        className="px-3 py-2"
+                                                    >
+                                                        Téléphone
+                                                    </th>
+                                                    <th
+                                                        scope="col"
+                                                        className="px-3 py-2"
+                                                    >
+                                                        Ville
+                                                    </th>
+                                                    <th
+                                                        scope="col"
+                                                        className="px-3 py-2"
+                                                    >
+                                                        Prix
+                                                    </th>
+                                                    <th
+                                                        scope="col"
+                                                        className="px-3 py-2"
+                                                    >
+                                                        Produit
+                                                    </th>
+                                                    <th
+                                                        scope="col"
+                                                        className="px-3 py-2"
+                                                    >
+                                                        Adresse
+                                                    </th>
+                                                    <th
+                                                        scope="col"
+                                                        className="px-3 py-2"
+                                                    >
+                                                        Commentaire
+                                                    </th>
+                                                    <th
+                                                        scope="col"
+                                                        className="px-3 py-2"
+                                                    >
+                                                        Actions
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {list_commande_excel.map(
+                                                    (commande, index) => (
+                                                        <tr
+                                                            key={index}
+                                                            className={`border-b ${
+                                                                index % 2 === 0
+                                                                    ? "bg-gray-800"
+                                                                    : "bg-gray-700"
+                                                            } hover:bg-gray-600`}
+                                                        >
+                                                            <td className="px-3 py-2">
+                                                                {commande.id_commande ||
+                                                                    "-"}
+                                                            </td>
+                                                            <td
+                                                                className={`px-3 py-2 ${
+                                                                    !commande.nom_client
+                                                                        ? "bg-red-900 bg-opacity-30"
+                                                                        : ""
+                                                                }`}
+                                                            >
+                                                                <input
+                                                                    className="w-full px-2 py-0.5 bg-gray-700 border border-gray-600 rounded text-white focus:ring-1 focus:ring-blue-400 focus:outline-none"
+                                                                    type="text"
+                                                                    name="nom_client"
+                                                                    value={
+                                                                        commande.nom_client ||
+                                                                        ""
+                                                                    }
+                                                                    onChange={(
+                                                                        e
+                                                                    ) => {
+                                                                        get_valueExcel(
+                                                                            commande.id_commande,
+                                                                            e
+                                                                        );
+                                                                    }}
+                                                                />
+                                                                {(!commande.nom_client ||
+                                                                    commande.nom_client ==
+                                                                        "") && (
+                                                                    <p className="text-red-400 text-[0.65rem] mt-0.5">
+                                                                        champ
+                                                                        vide
+                                                                    </p>
+                                                                )}
+                                                            </td>
+                                                            <td
+                                                                className={`px-3 py-2 ${
+                                                                    !commande.numero_client ||
+                                                                    commande
+                                                                        .numero_client
+                                                                        .length !==
+                                                                        10
+                                                                        ? "bg-red-900 bg-opacity-30"
+                                                                        : ""
+                                                                }`}
+                                                            >
+                                                                <input
+                                                                    className="w-full px-2 py-0.5 bg-gray-700 border border-gray-600 rounded text-white focus:ring-1 focus:ring-blue-400 focus:outline-none"
+                                                                    type="text"
+                                                                    name="numero_client"
+                                                                    value={
+                                                                        commande.numero_client ||
+                                                                        ""
+                                                                    }
+                                                                    onChange={(
+                                                                        e
+                                                                    ) => {
+                                                                        get_valueExcel(
+                                                                            commande.id_commande,
+                                                                            e
+                                                                        );
+                                                                    }}
+                                                                />
+                                                                {(!commande.numero_client ||
+                                                                    commande
+                                                                        .numero_client
+                                                                        .length !==
+                                                                        10) && (
+                                                                    <p className="text-red-400 text-[0.65rem] mt-0.5">
+                                                                        Numéro
+                                                                        invalide
+                                                                        (10
+                                                                        chiffres
+                                                                        requis)
+                                                                    </p>
+                                                                )}
+                                                            </td>
+                                                            <td
+                                                                className={`px-3 py-2 ${
+                                                                    !commande.ville
+                                                                        ? "bg-red-900 bg-opacity-30"
+                                                                        : ""
+                                                                }`}
+                                                            >
+                                                                {commande.ville ===
+                                                                null ? (
+                                                                    <Select
+                                                                        options={
+                                                                            list_villes
+                                                                        }
+                                                                        placeholder="Choisir une ville"
+                                                                        onChange={(
+                                                                            e
+                                                                        ) =>
+                                                                            modifieVille(
+                                                                                commande.id_commande,
+                                                                                e.value
+                                                                            )
+                                                                        }
+                                                                        className="react-select-container text-xs"
+                                                                        classNamePrefix="react-select"
+                                                                    />
+                                                                ) : (
+                                                                    <Select
+                                                                        options={
+                                                                            list_villes
+                                                                        }
+                                                                        value={list_villes.find(
+                                                                            (
+                                                                                ville
+                                                                            ) =>
+                                                                                ville.value ===
+                                                                                commande.ville
+                                                                        )}
+                                                                        onChange={(
+                                                                            e
+                                                                        ) =>
+                                                                            modifieVille(
+                                                                                commande.id_commande,
+                                                                                e.value
+                                                                            )
+                                                                        }
+                                                                        className="react-select-container text-xs"
+                                                                        classNamePrefix="react-select"
+                                                                    />
+                                                                )}
+                                                                {(!commande.ville ||
+                                                                    commande.ville ==
+                                                                        "") && (
+                                                                    <p className="text-red-400 text-[0.65rem] mt-0.5">
+                                                                        champ
+                                                                        vide
+                                                                    </p>
+                                                                )}
+                                                            </td>
+                                                            <td className="px-3 py-2">
+                                                                <input
+                                                                    className="w-full px-2 py-0.5 bg-gray-700 border border-gray-600 rounded text-white focus:ring-1 focus:ring-blue-400 focus:outline-none"
+                                                                    type="text"
+                                                                    name="prix"
+                                                                    value={
+                                                                        commande.prix ||
+                                                                        0
+                                                                    }
+                                                                    onChange={(
+                                                                        e
+                                                                    ) => {
+                                                                        get_valueExcel(
+                                                                            commande.id_commande,
+                                                                            e
+                                                                        );
+                                                                    }}
+                                                                />
+                                                                {commande.prix ==
+                                                                    0 && (
+                                                                    <p className="text-yellow-500 text-[0.65rem] mt-0.5 font-medium">
+                                                                        Attention
+                                                                        : le
+                                                                        prix est
+                                                                        à zéro
+                                                                    </p>
+                                                                )}
+                                                            </td>
+                                                            <td className="px-3 py-2">
+                                                                <select
+                                                                    onChange={(
+                                                                        e
+                                                                    ) =>
+                                                                        modifieProduit(
+                                                                            commande.id_commande,
+                                                                            e
+                                                                                .target
+                                                                                .value
+                                                                        )
+                                                                    }
+                                                                    className="w-full px-2 py-0.5 bg-gray-700 border border-gray-600 rounded text-white focus:ring-1 focus:ring-blue-400 focus:outline-none text-xs"
+                                                                >
+                                                                    <option
+                                                                        value={
+                                                                            commande.id_commande
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            commande.nom_produit
+                                                                        }
+                                                                    </option>
+                                                                    {list_produit.map(
+                                                                        (
+                                                                            produit
+                                                                        ) => (
+                                                                            <option
+                                                                                key={
+                                                                                    produit.id_produit
+                                                                                }
+                                                                                value={
+                                                                                    produit.id_produit
+                                                                                }
+                                                                            >
+                                                                                {
+                                                                                    produit.nom
+                                                                                }
+                                                                            </option>
+                                                                        )
+                                                                    )}
+                                                                </select>
+                                                                {(commande.id_commande ==
+                                                                    null ||
+                                                                    commande.nom_produit ==
+                                                                        null) && (
+                                                                    <p className="text-red-400 text-[0.65rem] mt-0.5">
+                                                                        choisir
+                                                                        un
+                                                                        produit
+                                                                    </p>
+                                                                )}
+                                                            </td>
+                                                            <td
+                                                                className={`px-3 py-2 ${
+                                                                    !commande.adresse_client
+                                                                        ? "bg-red-900 bg-opacity-30"
+                                                                        : ""
+                                                                }`}
+                                                            >
+                                                                <input
+                                                                    className="w-full px-2 py-0.5 bg-gray-700 border border-gray-600 rounded text-white focus:ring-1 focus:ring-blue-400 focus:outline-none"
+                                                                    type="text"
+                                                                    name="adresse_client"
+                                                                    value={
+                                                                        commande.adresse_client ||
+                                                                        ""
+                                                                    }
+                                                                    onChange={(
+                                                                        e
+                                                                    ) => {
+                                                                        get_valueExcel(
+                                                                            commande.id_commande,
+                                                                            e
+                                                                        );
+                                                                    }}
+                                                                />
+                                                            </td>
+                                                            <td className="px-3 py-2">
+                                                                <input
+                                                                    name="commantaire"
+                                                                    className="w-full px-2 py-0.5 bg-gray-700 border border-gray-600 rounded text-white focus:ring-1 focus:ring-blue-400 focus:outline-none"
+                                                                    type="text"
+                                                                    value={
+                                                                        commande.commantaire ||
+                                                                        ""
+                                                                    }
+                                                                    onChange={(
+                                                                        e
+                                                                    ) => {
+                                                                        get_valueExcel(
+                                                                            commande.id_commande,
+                                                                            e
+                                                                        );
+                                                                    }}
+                                                                />
+                                                            </td>
+                                                            <td className="px-3 py-2 flex space-x-1">
+                                                                <button
+                                                                    onClick={() =>
+                                                                        delete_cmd_excel(commande.id_commande)
+                                                                    }
+                                                                    className="text-red-400 hover:text-red-600"
+                                                                    title="Supprimer"
+                                                                >
+                                                                    <FaTrashAlt
+                                                                        size={
+                                                                            14
+                                                                        }
+                                                                    />
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    )
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    {/* Boutons d'action */}
+                                    <div className="mt-4 flex justify-end space-x-3">
                                         <button
                                             onClick={() =>
-                                                supprimer_commande(commande)
+                                                setAfficher_commandes_excel(
+                                                    false
+                                                )
                                             }
-                                            className="text-red-400 hover:text-red-600"
-                                            title="Supprimer"
+                                            className="px-4 py-1.5 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm"
                                         >
-                                            <FaTrashAlt />
+                                            Annuler
                                         </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Alert Box */}
-                <div className="mt-4 p-4 bg-yellow-900 bg-opacity-30 border border-yellow-700 rounded-lg">
-                    <div className="flex items-center">
-                        <svg
-                            className="w-5 h-5 text-yellow-400 mr-2"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                        >
-                            <path
-                                fillRule="evenodd"
-                                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                                clipRule="evenodd"
-                            />
-                        </svg>
-                        <h3 className="text-yellow-400 font-medium">
-                            Vérification requise avant importation
-                        </h3>
-                    </div>
-                    <p className="mt-2 text-yellow-300 text-sm">
-                        Veuillez vérifier toutes les informations avant de procéder à l'importation.
-                        Les champs marqués en rouge nécessitent une attention particulière.
-                    </p>
-                </div>
-
-                {/* Boutons d'action */}
-                <div className="mt-6 flex justify-end space-x-4">
-                    <button
-                        onClick={() =>setAfficher_commandes_excel(false)}
-                        className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg"
-                    >
-                        Annuler
-                    </button>
-                    <button
-                        onClick={ajouterExcelData_json}
-                        className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
-                    >
-                        Confirmer l'importation
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-)}
+                                        <button
+                                            onClick={ExcelToJson}
+                                            className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
+                                        >
+                                            Confirmer l'importation
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
