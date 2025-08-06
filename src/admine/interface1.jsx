@@ -54,6 +54,7 @@ function Add_commande() {
         ville_commande: "",
         id_user: user.id,
         date_commande: "",
+        echange: null,
     });
     const list_produit = useSelector((state) => state.list_produit);
     const [produitTrouve, setProduitTrouve] = useState([]);
@@ -223,6 +224,7 @@ function Add_commande() {
                     ville_commande: "",
                     id_user: user.id,
                     date_commande: format(new Date(), "yyyy-MM-dd"),
+                    echange: null,
                 });
                 setErrors({});
             }
@@ -270,6 +272,7 @@ function Add_commande() {
                     ville_commande: "",
                     id_user: user.id,
                     date_commande: "",
+                    echange: null,
                 });
             }
         } else {
@@ -305,6 +308,7 @@ function Add_commande() {
             nom_produit: cmd.nom_produit,
             id_user: user.id,
             date_commande: format(new Date(), "yyyy-MM-dd"),
+            echange: cmd.echange,
         });
         setButton(true);
     };
@@ -335,6 +339,7 @@ function Add_commande() {
             ville_commande: "",
             id_user: user.id,
             date_commande: "",
+            echange: null,
         });
         setOld_qnt(0);
         setButton(false);
@@ -406,9 +411,9 @@ function Add_commande() {
     };
 
     const [excelData, setExcelData] = useState(null);
-    
+
     const handleFileUpload = (e) => {
-        setList_commande_excel([])
+        setList_commande_excel([]);
         const file = e.target.files[0];
 
         if (
@@ -502,11 +507,12 @@ function Add_commande() {
                     prix_livraison: findville(row["VILLE"])
                         ? findville(row["VILLE"]).DELIVERED
                         : 0,
-                    quntite: 1,
+                    quntite: row["QUANTITE"] || 1,
                     prix: row["PRIX"] || 0,
                     commantaire: row["COMMENTAIRE"] || "", // Commentaire
                     produit_id: find_produit(JSON.stringify(row["COMMENTAIRE"]))
-                        ? find_produit(JSON.stringify(row["COMMENTAIRE"])).id
+                        ? find_produit(JSON.stringify(row["COMMENTAIRE"]))
+                              .id_produit
                         : null, // Identifiant du produit (vide pour l'instant)
                     nom_produit: find_produit(
                         JSON.stringify(row["COMMENTAIRE"])
@@ -524,7 +530,6 @@ function Add_commande() {
             toast.success("✅ Données ajoutées avec succès !");
         } else {
             toast.error("❌ Aucune donnée à ajouter !");
-            
         }
     };
 
@@ -617,8 +622,14 @@ function Add_commande() {
             let validation = validateListExcel(commande);
             console.log("validateddata", commande.id_commande, validation);
             if (Object.keys(validation).length == 0) {
+                const objQnt = {
+                    id_produit: commande.produit_id,
+                    action: "ajouter",
+                    new_qnt: commande.quntite,
+                    old_qnt: 0,
+                };
                 dispatch(add_commandes(commande));
-                dispatch(set_qnt_produit(commande.produit_id));
+                dispatch(set_qnt_produit(objQnt));
                 listCommandeAjouter.push(commande.id_commande);
             } else {
                 // correction ici : clé dynamique avec []
@@ -633,14 +644,11 @@ function Add_commande() {
         setErreur_list_commande_excel(newErrors);
     };
 
-    const delete_cmd_excel=(id_commande)=>{
-           setList_commande_excel(
-            list_commande_excel.filter(
-                (i) => (i.id_commande)!=id_commande
-            )
+    const delete_cmd_excel = (id_commande) => {
+        setList_commande_excel(
+            list_commande_excel.filter((i) => i.id_commande != id_commande)
         );
-
-    }
+    };
     console.log("new ville", list_commande_excel);
     return (
         <div className="p-4 bg-gray-900 min-h-screen text-white">
@@ -1045,83 +1053,8 @@ function Add_commande() {
                                                 >
                                                     {commande.nom_produit ==
                                                     null ? (
-                                                        <select
-                                                            name="produit_id"
-                                                            className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                                                        >
-                                                            <option value="">
-                                                                Choisir un
-                                                                produit
-                                                            </option>
-                                                            {list_produit.length >
-                                                            0 ? (
-                                                                list_produit.map(
-                                                                    (i) => (
-                                                                        <option
-                                                                            key={
-                                                                                i.id_produit
-                                                                            }
-                                                                            value={
-                                                                                i.id_produit
-                                                                            }
-                                                                            disabled={
-                                                                                i.quantite ===
-                                                                                0
-                                                                            }
-                                                                        >
-                                                                            {`${i.nom} - Quantité: ${i.quantite}`}
-                                                                        </option>
-                                                                    )
-                                                                )
-                                                            ) : (
-                                                                <option>
-                                                                    Aucun
-                                                                    produit
-                                                                    disponible
-                                                                </option>
-                                                            )}
-                                                        </select>
-                                                    ) : (
-                                                        <select
-                                                            name="produit_id"
-                                                            value={
-                                                                commande.produit_id
-                                                            }
-                                                            className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                                                        >
-                                                            <option value="">
-                                                                Choisir un
-                                                                produit
-                                                            </option>
-                                                            {list_produit.length >
-                                                            0 ? (
-                                                                list_produit.map(
-                                                                    (i) => (
-                                                                        <option
-                                                                            key={
-                                                                                i.id_produit
-                                                                            }
-                                                                            value={
-                                                                                i.id_produit
-                                                                            }
-                                                                            disabled={
-                                                                                i.quantite ===
-                                                                                0
-                                                                            }
-                                                                        >
-                                                                            {`${i.nom} - Quantité: ${i.quantite}`}
-                                                                        </option>
-                                                                    )
-                                                                )
-                                                            ) : (
-                                                                <option>
-                                                                    Aucun
-                                                                    produit
-                                                                    disponible
-                                                                </option>
-                                                            )}
-                                                        </select>
-                                                    )}
+                                                        null
+                                                    ):<p>{commande.nom_produit}</p>}
                                                 </td>
                                                 <td
                                                     className={`px-6 ${
@@ -1433,6 +1366,7 @@ function Add_commande() {
                                                                 />
                                                             </td>
                                                             <td className="px-6 py-4">
+                                                                h
                                                                 <select
                                                                     onChange={(
                                                                         e
@@ -1547,7 +1481,6 @@ function Add_commande() {
                                                     false
                                                 );
                                                 setList_commande_excel([]);
-                                                
                                             }}
                                             className="px-4 py-1.5 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm"
                                         >
@@ -1617,6 +1550,12 @@ function Add_commande() {
                                                         className="px-3 py-2"
                                                     >
                                                         Produit
+                                                    </th>
+                                                    <th
+                                                        scope="col"
+                                                        className="px-3 py-2"
+                                                    >
+                                                        quantite
                                                     </th>
                                                     <th
                                                         scope="col"
@@ -1867,6 +1806,32 @@ function Add_commande() {
                                                                     </p>
                                                                 )}
                                                             </td>
+                                                            <td>
+                                                                <input
+                                                                    value={
+                                                                        commande.quntite
+                                                                    }
+                                                                    onChange={(
+                                                                        e
+                                                                    ) => {
+                                                                        get_valueExcel(
+                                                                            commande.id_commande,
+                                                                            e
+                                                                        );
+                                                                    }}
+                                                                    name="quntite"
+                                                                    type="number"
+                                                                    min="1"
+                                                                    className="w-full px-2 py-0.5 bg-gray-700 border border-gray-600 rounded text-white focus:ring-1 focus:ring-blue-400 focus:outline-none"
+                                                                />
+                                                                {errors.quntite && (
+                                                                    <p className="text-red-400 text-xs mt-1">
+                                                                        {
+                                                                            errors.quntite
+                                                                        }
+                                                                    </p>
+                                                                )}
+                                                            </td>
                                                             <td
                                                                 className={`px-3 py-2 ${
                                                                     !commande.adresse_client
@@ -1914,7 +1879,9 @@ function Add_commande() {
                                                             <td className="px-3 py-2 flex space-x-1">
                                                                 <button
                                                                     onClick={() =>
-                                                                        delete_cmd_excel(commande.id_commande)
+                                                                        delete_cmd_excel(
+                                                                            commande.id_commande
+                                                                        )
                                                                     }
                                                                     className="text-red-400 hover:text-red-600"
                                                                     title="Supprimer"

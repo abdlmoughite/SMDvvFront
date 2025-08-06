@@ -29,7 +29,7 @@ import {
   edit,
   add_coust_jour,
   get_coust
-  
+
 } from "./actions.jsx";
 import { compose } from "redux";
 const local="http://127.0.0.1:8000"
@@ -108,8 +108,6 @@ export const get_commandes = () => async (dispatch) => {
 export const set_qnt_produit = (objQnt) => async (dispatch) => {
   dispatch(loading);
   try {
-
-
     const res = await axios.put(local+"/api/produit/qnt/"+objQnt.id_produit,
     objQnt,
       {
@@ -152,7 +150,7 @@ export const engr_commande = (commandes) => async (dispatch) => {
             quntite: commandes[i].quntite,
             prix_livraison: commandes[i].prix_livraison,
             prix: commandes[i].prix,
-            commentaire: commandes[i].commantaire,
+            commentaire: commandes[i].commantaire.toString(),
             ville_commande: commandes[i].ville,
             numero: res_client.data.numero,
             id_produit: commandes[i].produit_id,
@@ -433,7 +431,7 @@ export const logout = () => async (dispatch) => {
       console.log(res.data);
       await localStorage.clear();
       await dispatch(login_user(null, null, "",null));
-      
+
     }
   } catch (error) {
     console.log(error);
@@ -590,7 +588,7 @@ export const affecter_permition = (id_user, new_obj) => async (dispatch) => {
 
 export const ajouter_coust_groub = (data) => async (dispatch) => {
   dispatch(loading());
-  
+
   try {
     const res = await axios.post(local+"/api/coust",  data,{
       headers: {
@@ -619,7 +617,7 @@ export const get_coust_groub = () => async (dispatch) => {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token-user")}`,
       },
-    }); 
+    });
     if (res2.status == 200 || res2.status == 201) {
       console.log(res2);
       dispatch(get_commande(res2.data));
@@ -674,7 +672,7 @@ export const update_coust_cmd = (commandes , coust) => async (dispatch) => {
   try {
     const res = await axios.post(
       local+"/api/update_coust_cmd/",
-      {'commandes' : commandes, 
+      {'commandes' : commandes,
         'coust' : coust
       }
     );
