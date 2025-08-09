@@ -220,7 +220,6 @@ function NavSuperAdmin() {
         <div className="px-4 py-3 flex flex-col items-start">
           <div className="flex items-center space-x-2">
             <div className="bg-blue-600 rounded p-1">
-              {/* Icon panier / logo */}
               <MdShoppingCart size={24} className="text-white" />
             </div>
             {isSidebarOpen && (
@@ -243,7 +242,7 @@ function NavSuperAdmin() {
                 <li key={index} className="relative">
                   <Link
                     to={path}
-                    className={`flex items-center p-3 rounded-lg transition-colors duration-200
+                    className={`group flex items-center p-3 rounded-lg transition-colors duration-200
                       ${
                         isActive
                           ? "bg-[#2d65e6] text-white"
@@ -252,16 +251,18 @@ function NavSuperAdmin() {
                     `}
                   >
                     <span
-                      className={`mr-3 text-lg ${
-                        isActive ? "text-white" : "text-blue-400"
+                      className={`mr-3 text-lg transition-all duration-200 ${
+                        isActive ? "scale-110" : "group-hover:scale-110"
                       }`}
                     >
-                      {icon}
+                      {React.cloneElement(icon, {
+                        size: isActive ? 26 : 22,
+                        color: isActive ? "#FFD700" : "#60A5FA", // jaune actif / bleu inactif
+                      })}
                     </span>
                     {isSidebarOpen && <span>{label}</span>}
                   </Link>
 
-                  {/* Petit point bleu à droite du label quand actif */}
                   {isActive && isSidebarOpen && (
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-blue-500"></span>
                   )}
@@ -273,19 +274,14 @@ function NavSuperAdmin() {
             <li>
               <Link
                 to="/logout"
-                className="flex items-center p-3 rounded-lg text-gray-400 hover:bg-gray-700 hover:text-white transition-colors duration-200"
+                className="group flex items-center p-3 rounded-lg text-gray-400 hover:bg-gray-700 hover:text-white transition-colors duration-200"
               >
-                <span className="mr-3 text-lg text-blue-400">
-                  <AiOutlineLogout />
+                <span className="mr-3 text-lg group-hover:scale-110 transition-all duration-200">
+                  <AiOutlineLogout size={22} color="#60A5FA" />
                 </span>
                 {isSidebarOpen && <span>Déconnexion</span>}
               </Link>
             </li>
-            <li></li><br />
-            <li></li><br />
-            <li></li><br />
-            <li></li><br />
-            <li></li><br />
           </ul>
         </nav>
       </div>
@@ -296,9 +292,6 @@ function NavSuperAdmin() {
           isSidebarOpen ? "ml-64" : "ml-20"
         }`}
       >
-        <br />
-        <br />
-
         <Routes>
           {routes.map(({ path, element, permission }, index) => (
             <Route
