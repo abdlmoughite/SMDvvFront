@@ -113,17 +113,7 @@ function Add_commande() {
             (i) => i.id_commande == idCommande
         );
         if ([e.target.name] == "numero_client") {
-            if (e.target.value.length == 10) {
-                setValidateName(null);
-                if (elementHtml) {
-                    elementHtml.style.display = "none";
-                }
-            } else {
-                setValidateName("ecrire une validate name");
-                if (elementHtml) {
-                    elementHtml.style.display = "block";
-                }
-            }
+            
         }
         commandeRecherch[e.target.name] = e.target.value;
         setList_commande_excel(
