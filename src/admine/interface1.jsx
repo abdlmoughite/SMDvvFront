@@ -413,35 +413,51 @@ function Add_commande() {
     const [excelData, setExcelData] = useState(null);
 
     const handleFileUpload = (e) => {
-        setList_commande_excel([]);
-        const file = e.target.files[0];
+    setList_commande_excel([]);
+    const file = e.target.files[0];
 
-        if (
-            file &&
-            file.type ===
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        ) {
-            const reader = new FileReader();
+    if (
+        file &&
+        file.type ===
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    ) {
+        const reader = new FileReader();
 
-            reader.onload = (event) => {
-                const arrayBuffer = event.target.result;
-                const workbook = XLSX.read(arrayBuffer, { type: "array" });
+        reader.onload = (event) => {
+            const arrayBuffer = event.target.result;
+            const workbook = XLSX.read(arrayBuffer, { type: "array" });
 
-                const sheetName = workbook.SheetNames[0];
-                const sheet = workbook.Sheets[sheetName];
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
 
-                const data = XLSX.utils.sheet_to_json(sheet, {
-                    range: "A1:I100",
+            // ✅ On lit toute la feuille, pas seulement A1:I100
+            const data = XLSX.utils.sheet_to_json(sheet, {
+                defval: "", // garde les cellules vides
+                raw: true   // garde les types originaux
+            });
+
+            // ✅ On nettoie les noms de colonnes pour éviter les erreurs
+            const cleanedData = data.map((row) => {
+                const newRow = {};
+                Object.keys(row).forEach((key) => {
+                    const cleanKey = key.toString().trim().toUpperCase();
+                    newRow[cleanKey] = row[key];
                 });
+                return newRow;
+            });
 
-                setExcelData(data);
-            };
+            console.log("Colonnes détectées :", Object.keys(cleanedData[0]));
+            console.log("Data Excel nettoyée :", cleanedData);
 
-            reader.readAsArrayBuffer(file);
-        } else {
-            alert("Veuillez télécharger un fichier Excel valide.");
-        }
-    };
+            setExcelData(cleanedData);
+        };
+
+        reader.readAsArrayBuffer(file);
+    } else {
+        alert("Veuillez télécharger un fichier Excel valide.");
+    }
+};
+
 
     const findville = (villeName) => {
         const foundVille = list_villes.find(
@@ -450,19 +466,59 @@ function Add_commande() {
         return foundVille;
     };
     const find_produit = (cmnt) => {
-        const id_produit = cmnt.split(",")[0];
+        if (cmnt) {
+            const id_produit = cmnt.split(",")[0];
 
-        if (Array.isArray(produitTrouve) && produitTrouve.length > 0) {
-            return produitTrouve.find(
-                (produit) => produit.id_produit == id_produit
-            );
+            if (Array.isArray(produitTrouve) && produitTrouve.length > 0) {
+                return produitTrouve.find(
+                    (produit) => produit.id_produit == id_produit
+                );
+            }
+
+            return null;
         }
 
         return null; // Aucun produit trouvé ou tableau vide
     };
 
+
+
     const ajouterExcelData_json = () => {
         setAfficher_commandes_excel(true);
+
+        // ✅ Colonnes attendues dans le fichier Excel
+        const colonnesObligatoires = [
+            "DESTINATAIRE",
+            "TELEPHONE",
+            "ADRESSE",
+            "VILLE",
+            "QUANTITE",
+            "PRIX",
+            "COMMENTAIRE",
+        ];
+
+        // Vérification si excelData existe et contient des données
+        if (!excelData || !Array.isArray(excelData) || excelData.length === 0) {
+            toast.error("❌ Aucune donnée à ajouter !");
+            return;
+        }
+
+        // ✅ Vérifier que toutes les colonnes obligatoires sont présentes
+        const colonnesExcel = Object.keys(excelData[0]);
+        console.log("colonnesExcel",colonnesExcel)
+        const colonnesManquantes = colonnesObligatoires.filter(
+            (col) => !colonnesExcel.includes(col)
+        );
+
+        if (colonnesManquantes.length > 0) {
+            toast.error(
+                `❌ Colonnes manquantes dans le fichier Excel : ${colonnesManquantes.join(
+                    ", "
+                )}`
+            );
+            return;
+        }
+
         const id_commande = Date.now();
         let inc = 0;
         if (excelData && Array.isArray(excelData)) {
@@ -1052,9 +1108,13 @@ function Add_commande() {
                                                     } py-4 whitespace-nowrap text-sm text-gray-300`}
                                                 >
                                                     {commande.nom_produit ==
-                                                    null ? (
-                                                        null
-                                                    ):<p>{commande.nom_produit}</p>}
+                                                    null ? null : (
+                                                        <p>
+                                                            {
+                                                                commande.nom_produit
+                                                            }
+                                                        </p>
+                                                    )}
                                                 </td>
                                                 <td
                                                     className={`px-6 ${
@@ -1864,7 +1924,7 @@ function Add_commande() {
                                                                     type="text"
                                                                     value={
                                                                         commande.commantaire ||
-                                                                        ""
+                                                                        "makayn walo"
                                                                     }
                                                                     onChange={(
                                                                         e
