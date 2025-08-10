@@ -598,7 +598,6 @@ export const ajouter_coust_groub = (data) => async (dispatch) => {
       },
     } );
     if (res.status == 200 || res.status == 201) {
-      console.log(res.data);
       dispatch(get_coust(res.data));
     }
   } catch (error) {
@@ -653,7 +652,6 @@ export const edit_coust_groub = (newData) => async (dispatch) => {
 
 export const update_commande_jour_cost = (commande) => async (dispatch) => {
   dispatch(loading());
-  console.log("commande", commande.id_commande);
   try {
     const res = await axios.post(
       local+"/api/update_commande_jour_cost/",
@@ -661,6 +659,7 @@ export const update_commande_jour_cost = (commande) => async (dispatch) => {
     );
     if(res.status==200){
       dispatch(setCommande(res.data));
+
       dispatch(get_coust(res.data));
     }
 
@@ -670,7 +669,6 @@ export const update_commande_jour_cost = (commande) => async (dispatch) => {
 };
 export const update_coust_cmd = (commandes , coust) => async (dispatch) => {
   dispatch(loading());
-  console.log("coust", coust);
   try {
     const res = await axios.post(
       local+"/api/update_coust_cmd/",
